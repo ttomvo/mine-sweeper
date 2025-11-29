@@ -7,14 +7,17 @@ export const LEVELS = {
 export const THEMES = {
     DARK: 'dark',
     LIGHT: 'light',
+    AUTO: 'auto',
 };
 
 export const STORAGE_KEYS = {
     CONFIG: 'minesweeper_config',
     THEME: 'minesweeper_theme',
+    AUTO_REVEAL: 'minesweeper_auto_reveal',
 };
 
 export const DEFAULTS = {
     LEVEL: LEVELS.INTERMEDIATE,
-    THEME: THEMES.DARK,
+    THEME: THEMES.AUTO,
+    AUTO_REVEAL_COUNT: 1,
 };

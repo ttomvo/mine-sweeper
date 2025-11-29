@@ -174,3 +174,35 @@ export const revealAllMines = (board) => {
   }
   return newBoard;
 }
+
+export const revealRandomSafeCell = (board, count = 1) => {
+  if (count <= 0) return board;
+
+  let newBoard = structuredClone(board);
+
+  for (let i = 0; i < count; i++) {
+    const rows = newBoard.length;
+    const cols = newBoard[0].length;
+    const safeCells = [];
+
+    for (let x = 0; x < rows; x++) {
+      for (let y = 0; y < cols; y++) {
+        if (!newBoard[x][y].isMine &&
+          newBoard[x][y].neighborMines === 0 &&
+          !newBoard[x][y].isRevealed) {
+          safeCells.push({ x, y });
+        }
+      }
+    }
+
+    if (safeCells.length > 0) {
+      const randomCell = safeCells[Math.floor(Math.random() * safeCells.length)];
+      revealCellInPlace(newBoard, randomCell.x, randomCell.y);
+    } else {
+      // No more safe cells to reveal
+      break;
+    }
+  }
+
+  return newBoard;
+};

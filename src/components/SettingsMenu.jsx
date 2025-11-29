@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Moon, Sun, Check } from 'lucide-react';
+import { X, Moon, Sun, Check, Monitor } from 'lucide-react';
 import { THEMES } from '../utils/config';
 
 const SettingsMenu = ({
@@ -9,7 +9,10 @@ const SettingsMenu = ({
     levels,
     onLevelSelect,
     theme,
-    onThemeToggle
+    selectedTheme,
+    onThemeChange,
+    autoRevealCount,
+    onAutoRevealChange
 }) => {
     if (!isOpen) return null;
 
@@ -33,7 +36,7 @@ const SettingsMenu = ({
                     <h3 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${theme === THEMES.DARK ? 'text-gray-400' : 'text-gray-500'}`}>
                         Difficulty
                     </h3>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         {Object.keys(levels).map((level) => (
                             <button
                                 key={level}
@@ -55,28 +58,58 @@ const SettingsMenu = ({
                     </div>
                 </div>
 
+                {/* Auto Reveal Section */}
+                <div className="mb-8">
+                    <h3 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${theme === THEMES.DARK ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Auto Reveal Safe Cells
+                    </h3>
+                    <div className="grid grid-cols-4 gap-3">
+                        {[0, 1, 2, 3].map((count) => (
+                            <button
+                                key={count}
+                                onClick={() => onAutoRevealChange(count)}
+                                className={`p-4 rounded-xl transition-all font-bold ${autoRevealCount === count
+                                    ? 'bg-blue-600 text-white shadow-lg scale-[1.05]'
+                                    : theme === THEMES.DARK
+                                        ? 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                                    }`}
+                            >
+                                {count}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Theme Section */}
                 <div>
                     <h3 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${theme === THEMES.DARK ? 'text-gray-400' : 'text-gray-500'}`}>
                         Appearance
                     </h3>
-                    <button
-                        onClick={onThemeToggle}
-                        className={`w-full flex items-center justify-between p-4 rounded-xl transition-colors ${theme === THEMES.DARK
-                            ? 'bg-gray-800 hover:bg-gray-700 text-gray-200'
-                            : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-                            }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            {theme === THEMES.DARK ? <Moon size={20} /> : <Sun size={20} />}
-                            <span className="font-medium">
-                                {theme === THEMES.DARK ? 'Dark Mode' : 'Light Mode'}
-                            </span>
-                        </div>
-                        <div className={`w-12 h-6 rounded-full p-1 transition-colors ${theme === THEMES.DARK ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${theme === THEMES.DARK ? 'translate-x-6' : 'translate-x-0'}`} />
-                        </div>
-                    </button>
+                    <div className="flex flex-col gap-3">
+                        {[
+                            { value: THEMES.LIGHT, label: 'Light', icon: Sun },
+                            { value: THEMES.DARK, label: 'Dark', icon: Moon },
+                            { value: THEMES.AUTO, label: 'Auto', icon: Monitor },
+                        ].map((option) => (
+                            <button
+                                key={option.value}
+                                onClick={() => onThemeChange(option.value)}
+                                className={`flex items-center justify-between p-4 rounded-xl transition-all ${selectedTheme === option.value
+                                    ? 'bg-blue-600 text-white shadow-lg scale-[1.02]'
+                                    : theme === THEMES.DARK
+                                        ? 'bg-gray-800 hover:bg-gray-700 text-gray-200'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <option.icon size={20} />
+                                    <span className="font-medium">{option.label}</span>
+                                </div>
+                                {selectedTheme === option.value && <Check size={20} />}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
             </div>

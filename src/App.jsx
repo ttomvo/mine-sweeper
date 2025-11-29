@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Bomb, Clock, RefreshCw, Settings } from 'lucide-react';
 import Board from './components/Board';
-import { createBoard, revealCell, checkWin, revealAllMines, toggleFlag, chordReveal } from './utils/gameLogic';
+import { createBoard, revealCell, checkWin, revealAllMines, toggleFlag, chordReveal, revealRandomSafeCell } from './utils/gameLogic';
 import { playClick, playFlag, playExplosion, playWin } from './utils/sound';
 import SettingsMenu from './components/SettingsMenu';
 import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS } from './utils/config';
@@ -14,11 +14,37 @@ function App() {
     return saved ? JSON.parse(saved) : DEFAULTS.LEVEL;
   });
 
-  const [theme, setTheme] = useState(() => {
+  const [themePreference, setThemePreference] = useState(() => {
     return localStorage.getItem(STORAGE_KEYS.THEME) || DEFAULTS.THEME;
   });
 
-  const [board, setBoard] = useState(() => createBoard(config.rows, config.cols, config.mines));
+  const [autoRevealCount, setAutoRevealCount] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.AUTO_REVEAL);
+    return saved ? parseInt(saved, 10) : DEFAULTS.AUTO_REVEAL_COUNT;
+  });
+
+  const [effectiveTheme, setEffectiveTheme] = useState(THEMES.DARK);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const updateTheme = () => {
+      if (themePreference === THEMES.AUTO) {
+        setEffectiveTheme(mediaQuery.matches ? THEMES.DARK : THEMES.LIGHT);
+      } else {
+        setEffectiveTheme(themePreference);
+      }
+    };
+
+    updateTheme();
+    mediaQuery.addEventListener('change', updateTheme);
+    return () => mediaQuery.removeEventListener('change', updateTheme);
+  }, [themePreference]);
+
+  const [board, setBoard] = useState(() => {
+    const newBoard = createBoard(config.rows, config.cols, config.mines);
+    return revealRandomSafeCell(newBoard, autoRevealCount);
+  });
   const [gameState, setGameState] = useState('idle'); // idle, playing, won, lost
   const [mineCount, setMineCount] = useState(config.mines);
   const [timer, setTimer] = useState(0);
@@ -31,8 +57,9 @@ function App() {
   // Persist settings
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
-    localStorage.setItem(STORAGE_KEYS.THEME, theme);
-  }, [config, theme]);
+    localStorage.setItem(STORAGE_KEYS.THEME, themePreference);
+    localStorage.setItem(STORAGE_KEYS.AUTO_REVEAL, autoRevealCount);
+  }, [config, themePreference, autoRevealCount]);
 
   // Update board ref whenever board changes
   useEffect(() => {
@@ -45,13 +72,14 @@ function App() {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    const newBoard = createBoard(config.rows, config.cols, config.mines);
+    let newBoard = createBoard(config.rows, config.cols, config.mines);
+    newBoard = revealRandomSafeCell(newBoard, autoRevealCount);
     setBoard(newBoard);
     boardRef.current = newBoard;
-    setGameState('playing');
+    setGameState('idle');
     setMineCount(config.mines);
     setTimer(0);
-  }, [config]);
+  }, [config, autoRevealCount]);
 
   // Reset game when config changes
   useEffect(() => {
@@ -83,6 +111,10 @@ function App() {
 
   const handleCellClick = useCallback((x, y) => {
     if (gameState === 'won' || gameState === 'lost') return;
+
+    if (gameState === 'idle') {
+      setGameState('playing');
+    }
 
     const currentBoard = boardRef.current;
     const cell = currentBoard[x][y];
@@ -152,7 +184,7 @@ function App() {
 
   return (
     <div
-      className={`h-screen w-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${theme === THEMES.DARK
+      className={`h-screen w-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${effectiveTheme === THEMES.DARK
         ? 'bg-gradient-to-br from-gray-900 to-gray-800 text-white'
         : 'bg-gradient-to-br from-blue-50 to-white text-gray-900'
         }`}
@@ -168,12 +200,15 @@ function App() {
           setConfig(newConfig);
           // Game will auto-reset via useEffect when config changes
         }}
-        theme={theme}
-        onThemeToggle={() => setTheme(t => t === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK)}
+        theme={effectiveTheme}
+        selectedTheme={themePreference}
+        onThemeChange={setThemePreference}
+        autoRevealCount={autoRevealCount}
+        onAutoRevealChange={setAutoRevealCount}
       />
 
       {/* Header */}
-      <div className={`w-full flex items-center justify-between p-4 shrink-0 z-10 backdrop-blur-sm border-b relative transition-colors ${theme === THEMES.DARK
+      <div className={`w-full flex items-center justify-between p-4 shrink-0 z-10 backdrop-blur-sm border-b relative transition-colors ${effectiveTheme === THEMES.DARK
         ? 'bg-gray-900/95 border-gray-800'
         : 'bg-white/80 border-gray-200'
         }`}>
@@ -182,7 +217,7 @@ function App() {
         <div className="flex gap-2 z-20">
           <button
             onClick={() => setShowSettings(true)}
-            className={`p-2 rounded-full transition-colors ${theme === THEMES.DARK
+            className={`p-2 rounded-full transition-colors ${effectiveTheme === THEMES.DARK
               ? 'bg-gray-800 hover:bg-gray-700 text-gray-200'
               : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
               }`}
@@ -193,25 +228,25 @@ function App() {
         </div>
 
         {/* Center: Title */}
-        <h1 className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-extrabold tracking-tight select-none pointer-events-none ${theme === THEMES.DARK ? 'text-white' : 'text-gray-900'
+        <h1 className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-extrabold tracking-tight select-none pointer-events-none ${effectiveTheme === THEMES.DARK ? 'text-white' : 'text-gray-900'
           }`}>
           MIMESWEEPER
         </h1>
 
         {/* Right: Stats & Reset */}
         <div className="flex items-center gap-4 z-20">
-          <div className={`flex items-center gap-2 px-3 py-1 rounded-md border transition-colors ${theme === 'dark'
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-md border transition-colors ${effectiveTheme === 'dark'
             ? 'bg-gray-900 border-gray-700'
             : 'bg-gray-50 border-gray-200'
             }`}>
             <Bomb size={16} className="text-red-500" />
-            <span className={`font-mono text-xl font-bold ${theme === THEMES.DARK ? 'text-red-100' : 'text-red-600'
+            <span className={`font-mono text-xl font-bold ${effectiveTheme === THEMES.DARK ? 'text-red-100' : 'text-red-600'
               }`}>{mineCount}</span>
           </div>
 
           <button
             onClick={initGame}
-            className={`p-2 rounded-full transition-colors ${theme === THEMES.DARK
+            className={`p-2 rounded-full transition-colors ${effectiveTheme === THEMES.DARK
               ? 'bg-gray-700 hover:bg-gray-600 text-white'
               : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
               }`}
@@ -220,25 +255,25 @@ function App() {
             <RefreshCw size={20} />
           </button>
 
-          <div className={`flex items-center gap-2 px-3 py-1 rounded-md border transition-colors ${theme === THEMES.DARK
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-md border transition-colors ${effectiveTheme === THEMES.DARK
             ? 'bg-gray-900 border-gray-700'
             : 'bg-gray-50 border-gray-200'
             }`}>
             <Clock size={16} className="text-cyan-500" />
-            <span className={`font-mono text-xl font-bold ${theme === THEMES.DARK ? 'text-cyan-100' : 'text-cyan-700'
+            <span className={`font-mono text-xl font-bold ${effectiveTheme === THEMES.DARK ? 'text-cyan-100' : 'text-cyan-700'
               }`}>{String(timer).padStart(3, '0')}</span>
           </div>
         </div>
       </div>
 
       {/* Game Board Container */}
-      <div className="flex-1 flex items-center justify-center overflow-auto p-4 relative">
+      <div className="flex-1 flex items-start justify-center overflow-auto p-4 pt-12 relative">
         <div className="relative group">
           <Board
             board={board}
             onCellClick={handleCellClick}
             onCellContextMenu={handleCellContextMenu}
-            theme={theme}
+            theme={effectiveTheme}
           />
 
           {/* Game Over / Win Overlay */}
@@ -264,7 +299,7 @@ function App() {
       </div>
 
       {/* Footer */}
-      <div className={`p-4 shrink-0 text-center border-t transition-colors ${theme === THEMES.DARK
+      <div className={`p-4 shrink-0 text-center border-t transition-colors ${effectiveTheme === THEMES.DARK
         ? 'bg-gray-900 border-gray-800 text-gray-500'
         : 'bg-white/80 border-gray-200 text-gray-400'
         }`}>
