@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/mine-sweeper/sw.js', { scope: '/mine-sweeper/' })})}
