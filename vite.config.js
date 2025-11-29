@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Mimesweeper',
-        short_name: 'Mimesweeper',
+        name: 'Minesweeper',
+        short_name: 'Minesweeper',
         description: 'A modern Minesweeper clone',
         theme_color: '#111827',
         icons: [
