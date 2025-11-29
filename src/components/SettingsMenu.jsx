@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Moon, Sun, Check } from 'lucide-react';
-import { THEMES } from '../utils/constants';
+import { THEMES } from '../utils/config';
 
 const SettingsMenu = ({
     isOpen,

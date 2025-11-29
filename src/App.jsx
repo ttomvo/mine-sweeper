@@ -5,20 +5,20 @@ import Board from './components/Board';
 import { createBoard, revealCell, checkWin, revealAllMines, toggleFlag, chordReveal } from './utils/gameLogic';
 import { playClick, playFlag, playExplosion, playWin } from './utils/sound';
 import SettingsMenu from './components/SettingsMenu';
-import { LEVELS, STORAGE_KEYS, THEMES } from './utils/constants';
+import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS } from './utils/config';
 
 function App() {
   // Initialize state from localStorage or defaults
   const [config, setConfig] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CONFIG);
-    return saved ? JSON.parse(saved) : LEVELS.BEGINNER;
+    return saved ? JSON.parse(saved) : DEFAULTS.LEVEL;
   });
 
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem(STORAGE_KEYS.THEME) || THEMES.DARK;
+    return localStorage.getItem(STORAGE_KEYS.THEME) || DEFAULTS.THEME;
   });
 
-  const [board, setBoard] = useState([]);
+  const [board, setBoard] = useState(() => createBoard(config.rows, config.cols, config.mines));
   const [gameState, setGameState] = useState('idle'); // idle, playing, won, lost
   const [mineCount, setMineCount] = useState(config.mines);
   const [timer, setTimer] = useState(0);
@@ -26,6 +26,7 @@ function App() {
 
   const timerRef = useRef(null);
   const boardRef = useRef(board);
+  const isFirstRender = useRef(true);
 
   // Persist settings
   useEffect(() => {
@@ -52,10 +53,15 @@ function App() {
     setTimer(0);
   }, [config]);
 
-  // Initial load
+  // Reset game when config changes
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
     initGame();
-  }, [initGame]);
+  }, [config, initGame]);
 
   // Timer logic
   useEffect(() => {

@@ -4,12 +4,17 @@ export const LEVELS = {
     EXPERT: { rows: 16, cols: 30, mines: 99 },
 };
 
+export const THEMES = {
+    DARK: 'dark',
+    LIGHT: 'light',
+};
+
 export const STORAGE_KEYS = {
     CONFIG: 'minesweeper_config',
     THEME: 'minesweeper_theme',
 };
 
-export const THEMES = {
-    DARK: 'dark',
-    LIGHT: 'light',
+export const DEFAULTS = {
+    LEVEL: LEVELS.INTERMEDIATE,
+    THEME: THEMES.DARK,
 };
