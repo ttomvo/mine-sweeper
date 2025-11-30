@@ -21,3 +21,16 @@ export const DEFAULTS = {
     THEME: THEMES.AUTO,
     AUTO_REVEAL_COUNT: 1,
 };
+
+export const WIN_MESSAGES = [
+    "VICTORY!",
+    "YOU'RE A LEGEND!",
+    "MINES SWEPT!",
+    "PURE GENIUS!",
+    "UNSTOPPABLE!",
+    "MASTERPIECE!",
+    "CLEAN SWEEP!",
+    "LIKE A BOSS!",
+    "SPECTACULAR!",
+    "MINDBLOWING!"
+];

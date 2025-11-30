@@ -12,7 +12,7 @@ export default defineConfig({
       manifest: {
         name: 'Minesweeper',
         short_name: 'Minesweeper',
-        description: 'A modern Minesweeper clone',
+        description: 'A modern Minesweeper',
         theme_color: '#111827',
         icons: [
           {

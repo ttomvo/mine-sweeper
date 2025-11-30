@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { Bomb, Clock, RefreshCw, Settings } from 'lucide-react';
+import { Bomb, Clock, RefreshCw, Settings, Trophy } from 'lucide-react';
 import Board from './components/Board';
 import { createBoard, revealCell, checkWin, revealAllMines, toggleFlag, chordReveal, revealRandomSafeCell } from './utils/gameLogic';
 import { playClick, playFlag, playExplosion, playWin } from './utils/sound';
 import SettingsMenu from './components/SettingsMenu';
-import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS } from './utils/config';
+import DebugMenu from './components/DebugMenu';
+import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS, WIN_MESSAGES } from './utils/config';
 
 function App() {
   // Initialize state from localStorage or defaults
@@ -49,6 +50,9 @@ function App() {
   const [mineCount, setMineCount] = useState(config.mines);
   const [timer, setTimer] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const debugClickCountRef = useRef(0);
+  const [winMessage, setWinMessage] = useState('VICTORY!');
 
   const timerRef = useRef(null);
   const boardRef = useRef(board);
@@ -134,6 +138,7 @@ function App() {
           if (checkWin(newBoard)) {
             playWin();
             setGameState('won');
+            setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
             confetti({
               particleCount: 100,
               spread: 70,
@@ -158,6 +163,7 @@ function App() {
       if (checkWin(newBoard)) {
         playWin();
         setGameState('won');
+        setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
         confetti({
           particleCount: 100,
           spread: 70,
@@ -181,6 +187,27 @@ function App() {
     setBoard([...newBoard]);
     setMineCount(prev => cell.isFlagged ? prev + 1 : prev - 1);
   }, [gameState]);
+
+  const handleTitleClick = () => {
+    debugClickCountRef.current += 1;
+    if (debugClickCountRef.current >= 5) {
+      setShowDebug(true);
+      debugClickCountRef.current = 0;
+    }
+  };
+
+  const handleForceWin = () => {
+    if (gameState === 'won' || gameState === 'lost') return;
+
+    playWin();
+    setGameState('won');
+    setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 }
+    });
+  };
 
   return (
     <div
@@ -207,6 +234,14 @@ function App() {
         onAutoRevealChange={setAutoRevealCount}
       />
 
+      {/* Debug Menu */}
+      <DebugMenu
+        isOpen={showDebug}
+        onClose={() => setShowDebug(false)}
+        theme={effectiveTheme}
+        onForceWin={handleForceWin}
+      />
+
       {/* Header */}
       <div className={`w-full flex items-center justify-between p-4 shrink-0 z-10 backdrop-blur-sm border-b relative transition-colors ${effectiveTheme === THEMES.DARK
         ? 'bg-gray-900/95 border-gray-800'
@@ -228,9 +263,11 @@ function App() {
         </div>
 
         {/* Center: Title */}
-        <h1 className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-extrabold tracking-tight select-none pointer-events-none ${effectiveTheme === THEMES.DARK ? 'text-white' : 'text-gray-900'
-          }`}>
-          MIMESWEEPER
+        <h1
+          onClick={handleTitleClick}
+          className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl font-extrabold tracking-tight select-none cursor-pointer ${effectiveTheme === THEMES.DARK ? 'text-white' : 'text-gray-900'
+            }`}>
+          Mine Sweeper
         </h1>
 
         {/* Right: Stats & Reset */}
@@ -267,35 +304,42 @@ function App() {
       </div>
 
       {/* Game Board Container */}
-      <div className="flex-1 flex items-start justify-center overflow-auto p-4 pt-12 relative">
-        <div className="relative group">
-          <Board
-            board={board}
-            onCellClick={handleCellClick}
-            onCellContextMenu={handleCellContextMenu}
-            theme={effectiveTheme}
-          />
-
-          {/* Game Over / Win Overlay */}
-          {(gameState === 'won' || gameState === 'lost') && (
-            <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/50 rounded-xl animate-in fade-in duration-200">
-              <div className="bg-white text-black p-6 rounded-2xl shadow-xl text-center border-4 border-gray-200">
-                <h2 className={`text-3xl font-black mb-2 ${gameState === 'won' ? 'text-yellow-600' : 'text-gray-800'}`}>
-                  {gameState === 'won' ? 'VICTORY!' : 'GAME OVER'}
-                </h2>
-                <p className="text-gray-600 font-medium mb-4">
-                  {gameState === 'won' ? `Time: ${timer}s` : 'Better luck next time!'}
-                </p>
-                <button
-                  onClick={initGame}
-                  className="px-6 py-2 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95 shadow-lg"
-                >
-                  Play Again
-                </button>
-              </div>
-            </div>
-          )}
+      <div className="flex-1 relative overflow-hidden">
+        <div className="w-full h-full overflow-auto flex items-start justify-center p-4 pt-12">
+          <div className="relative group">
+            <Board
+              board={board}
+              onCellClick={handleCellClick}
+              onCellContextMenu={handleCellContextMenu}
+              theme={effectiveTheme}
+            />
+          </div>
         </div>
+
+        {/* Game Over / Win Overlay */}
+        {(gameState === 'won' || gameState === 'lost') && (
+          <div className="absolute inset-0 flex items-start justify-center z-50 bg-black/50 animate-in fade-in duration-200 backdrop-blur-sm pt-24">
+            <div className="bg-white text-black p-10 rounded-3xl shadow-2xl text-center border-4 border-gray-200 min-w-[320px]">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <h2 className={`text-4xl font-black ${gameState === 'won' ? 'text-yellow-600 animate-happy' : 'text-gray-800'}`}>
+                  {gameState === 'won' ? winMessage : 'GAME OVER'}
+                </h2>
+                {gameState === 'won' && (
+                  <Trophy size={48} className="text-yellow-500 animate-happy" />
+                )}
+              </div>
+              <p className="text-gray-600 font-medium mb-4">
+                {gameState === 'won' ? `Time: ${timer}s` : 'Better luck next time!'}
+              </p>
+              <button
+                onClick={initGame}
+                className="px-6 py-2 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95 shadow-lg"
+              >
+                Play Again
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

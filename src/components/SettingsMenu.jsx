@@ -61,7 +61,7 @@ const SettingsMenu = ({
                 {/* Auto Reveal Section */}
                 <div className="mb-8">
                     <h3 className={`text-sm font-semibold uppercase tracking-wider mb-3 ${theme === THEMES.DARK ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Auto Reveal Safe Cells
+                        Auto Reveal Cells On Start
                     </h3>
                     <div className="grid grid-cols-4 gap-3">
                         {[0, 1, 2, 3].map((count) => (
