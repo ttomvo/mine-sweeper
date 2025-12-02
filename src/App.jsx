@@ -123,8 +123,6 @@ function App() {
     const currentBoard = boardRef.current;
     const cell = currentBoard[x][y];
 
-    if (cell.isFlagged) return;
-
     if (cell.isRevealed) {
       const { board: newBoard, hitMine } = chordReveal(currentBoard, x, y);
       if (newBoard !== currentBoard) {
@@ -150,6 +148,25 @@ function App() {
       return;
     }
 
+    playFlag();
+    const newBoard = toggleFlag(currentBoard, x, y);
+    setBoard([...newBoard]);
+    setMineCount(prev => cell.isFlagged ? prev + 1 : prev - 1);
+  }, [gameState]);
+
+  const handleCellContextMenu = useCallback((e, x, y) => {
+    e.preventDefault();
+    if (gameState === 'won' || gameState === 'lost') return;
+
+    if (gameState === 'idle') {
+      setGameState('playing');
+    }
+
+    const currentBoard = boardRef.current;
+    const cell = currentBoard[x][y];
+
+    if (cell.isFlagged || cell.isRevealed) return;
+
     // Normal reveal
     const { board: newBoard, hitMine } = revealCell(currentBoard, x, y);
     setBoard([...newBoard]);
@@ -171,21 +188,6 @@ function App() {
         });
       }
     }
-  }, [gameState]);
-
-  const handleCellContextMenu = useCallback((e, x, y) => {
-    e.preventDefault();
-    if (gameState === 'won' || gameState === 'lost') return;
-
-    const currentBoard = boardRef.current;
-    const cell = currentBoard[x][y];
-
-    if (cell.isRevealed) return;
-
-    playFlag();
-    const newBoard = toggleFlag(currentBoard, x, y);
-    setBoard([...newBoard]);
-    setMineCount(prev => cell.isFlagged ? prev + 1 : prev - 1);
   }, [gameState]);
 
   const handleTitleClick = () => {
