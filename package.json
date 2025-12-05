@@ -1,6 +1,7 @@
 {
   "name": "mine-sweeper",
   "private": true,
+  "homepage": "https://ttomvo.github.io/mine-sweeper/",
   "version": "0.8.0",
   "type": "module",
   "scripts": {

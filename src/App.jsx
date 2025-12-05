@@ -7,12 +7,41 @@ import { playClick, playFlag, playExplosion, playWin } from './utils/sound';
 import SettingsMenu from './components/SettingsMenu';
 import DebugMenu from './components/DebugMenu';
 import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS, WIN_MESSAGES } from './utils/config';
+import pkg from '../package.json';
+
+const WIN_ANIMATIONS = [
+  'animate-happy',
+  'animate-wiggle',
+  'animate-pop',
+  'animate-tada',
+  'animate-float'
+];
 
 function App() {
   // Initialize state from localStorage or defaults
   const [config, setConfig] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CONFIG);
-    return saved ? JSON.parse(saved) : DEFAULTS.LEVEL;
+    if (saved) {
+      // Check if saved value is a direct key in LEVELS (New Format)
+      if (LEVELS[saved]) {
+        return LEVELS[saved];
+      }
+
+      // Fallback for legacy JSON format
+      try {
+        const parsed = JSON.parse(saved);
+        // Find matching level constant to preserve reference equality
+        const matchedLevel = Object.values(LEVELS).find(
+          level => level.rows === parsed.rows &&
+            level.cols === parsed.cols &&
+            level.mines === parsed.mines
+        );
+        return matchedLevel || parsed;
+      } catch (e) {
+        console.error("Failed to parse saved config", e);
+      }
+    }
+    return DEFAULTS.LEVEL;
   });
 
   const [themePreference, setThemePreference] = useState(() => {
@@ -53,6 +82,7 @@ function App() {
   const [showDebug, setShowDebug] = useState(false);
   const debugClickCountRef = useRef(0);
   const [winMessage, setWinMessage] = useState('VICTORY!');
+  const [winAnimation, setWinAnimation] = useState('animate-happy');
 
   const timerRef = useRef(null);
   const boardRef = useRef(board);
@@ -60,7 +90,16 @@ function App() {
 
   // Persist settings
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+    // Find the key for the current config to save as string
+    const levelKey = Object.keys(LEVELS).find(key => LEVELS[key] === config);
+
+    if (levelKey) {
+      localStorage.setItem(STORAGE_KEYS.CONFIG, levelKey);
+    } else {
+      // Fallback for custom configs (if any in future)
+      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+    }
+
     localStorage.setItem(STORAGE_KEYS.THEME, themePreference);
     localStorage.setItem(STORAGE_KEYS.AUTO_REVEAL, autoRevealCount);
   }, [config, themePreference, autoRevealCount]);
@@ -113,6 +152,18 @@ function App() {
     };
   }, [gameState]);
 
+  // Keyboard support for restarting
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((gameState === 'won' || gameState === 'lost') && e.key === 'Enter') {
+        initGame();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, initGame]);
+
   const handleCellClick = useCallback((x, y) => {
     if (gameState === 'won' || gameState === 'lost') return;
 
@@ -137,6 +188,7 @@ function App() {
             playWin();
             setGameState('won');
             setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
+            setWinAnimation(WIN_ANIMATIONS[Math.floor(Math.random() * WIN_ANIMATIONS.length)]);
             confetti({
               particleCount: 100,
               spread: 70,
@@ -181,6 +233,7 @@ function App() {
         playWin();
         setGameState('won');
         setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
+        setWinAnimation(WIN_ANIMATIONS[Math.floor(Math.random() * WIN_ANIMATIONS.length)]);
         confetti({
           particleCount: 100,
           spread: 70,
@@ -204,6 +257,7 @@ function App() {
     playWin();
     setGameState('won');
     setWinMessage(WIN_MESSAGES[Math.floor(Math.random() * WIN_MESSAGES.length)]);
+    setWinAnimation(WIN_ANIMATIONS[Math.floor(Math.random() * WIN_ANIMATIONS.length)]);
     confetti({
       particleCount: 100,
       spread: 70,
@@ -242,6 +296,11 @@ function App() {
         onClose={() => setShowDebug(false)}
         theme={effectiveTheme}
         onForceWin={handleForceWin}
+        version={pkg.version}
+        config={config}
+        gameState={gameState}
+        mineCount={mineCount}
+        timer={timer}
       />
 
       {/* Header */}
@@ -321,21 +380,31 @@ function App() {
         {/* Game Over / Win Overlay */}
         {(gameState === 'won' || gameState === 'lost') && (
           <div className="absolute inset-0 flex items-start justify-center z-50 bg-black/50 animate-in fade-in duration-200 backdrop-blur-sm pt-24">
-            <div className="bg-white text-black p-10 rounded-3xl shadow-2xl text-center border-4 border-gray-200 min-w-[320px]">
+            <div className={`p-10 rounded-3xl shadow-2xl text-center border-4 min-w-[320px] transition-colors ${effectiveTheme === THEMES.DARK
+              ? 'bg-gray-800 text-white border-gray-700'
+              : 'bg-white text-black border-gray-200'
+              }`}>
               <div className="flex items-center justify-center gap-4 mb-4">
-                <h2 className={`text-4xl font-black ${gameState === 'won' ? 'text-yellow-600 animate-happy' : 'text-gray-800'}`}>
+                <h2 className={`text-4xl font-black ${gameState === 'won'
+                  ? `text-yellow-500 ${winAnimation}`
+                  : effectiveTheme === THEMES.DARK ? 'text-white' : 'text-gray-800'
+                  }`}>
                   {gameState === 'won' ? winMessage : 'GAME OVER'}
                 </h2>
                 {gameState === 'won' && (
-                  <Trophy size={48} className="text-yellow-500 animate-happy" />
+                  <Trophy size={48} className={`text-yellow-500 ${winAnimation}`} />
                 )}
               </div>
-              <p className="text-gray-600 font-medium mb-4">
+              <p className={`font-medium mb-4 ${effectiveTheme === THEMES.DARK ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                 {gameState === 'won' ? `Time: ${timer}s` : 'Better luck next time!'}
               </p>
               <button
                 onClick={initGame}
-                className="px-6 py-2 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95 shadow-lg"
+                className={`px-6 py-2 rounded-full font-bold transition-all hover:scale-105 active:scale-95 shadow-lg ${effectiveTheme === THEMES.DARK
+                  ? 'bg-white text-gray-900 hover:bg-gray-100'
+                  : 'bg-black text-white hover:bg-gray-800'
+                  }`}
               >
                 Play Again
               </button>

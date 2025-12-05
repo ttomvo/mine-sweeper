@@ -6,7 +6,12 @@ const DebugMenu = ({
     isOpen,
     onClose,
     theme,
-    onForceWin
+    onForceWin,
+    version,
+    config,
+    gameState,
+    mineCount,
+    timer
 }) => {
     if (!isOpen) return null;
 
@@ -26,6 +31,29 @@ const DebugMenu = ({
                 </div>
 
                 <div className="flex flex-col gap-3">
+                    <div className={`p-4 rounded-xl text-sm font-mono ${theme === THEMES.DARK ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                        <div className="flex justify-between">
+                            <span>Version:</span>
+                            <span className="font-bold">{version}</span>
+                        </div>
+                        <div className="flex justify-between mt-2">
+                            <span>State:</span>
+                            <span className="font-bold uppercase">{gameState}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Grid:</span>
+                            <span className="font-bold">{config.rows}x{config.cols} ({config.mines} mines)</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Mines Left:</span>
+                            <span className="font-bold">{mineCount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Timer:</span>
+                            <span className="font-bold">{timer}s</span>
+                        </div>
+                    </div>
+
                     <button
                         onClick={() => {
                             onForceWin();
