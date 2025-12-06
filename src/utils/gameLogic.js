@@ -110,26 +110,30 @@ export const chordReveal = (board, x, y) => {
     return { board: newBoard, hitMine: false, revealedSomething: false };
   }
 
-  // Count flagged neighbors
-  let flaggedCount = 0;
+  // Count flagged neighbors AND revealed mines (for lives mechanism)
+  let accountedMines = 0;
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
       if (dx === 0 && dy === 0) continue;
       const nx = x + dx;
       const ny = y + dy;
       if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
-        if (newBoard[nx][ny].isFlagged) flaggedCount++;
+        const neighbor = newBoard[nx][ny];
+        if (neighbor.isFlagged || (neighbor.isRevealed && neighbor.isMine)) {
+          accountedMines++;
+        }
       }
     }
   }
 
-  if (flaggedCount !== cell.neighborMines) {
+  if (accountedMines !== cell.neighborMines) {
     return { board: newBoard, hitMine: false, revealedSomething: false };
   }
 
   // Reveal unflagged neighbors
   let hitMine = false;
   let revealedSomething = false;
+  let minesHitCount = 0;
 
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
@@ -139,14 +143,17 @@ export const chordReveal = (board, x, y) => {
       if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
         if (!newBoard[nx][ny].isFlagged && !newBoard[nx][ny].isRevealed) {
           const result = revealCellInPlace(newBoard, nx, ny);
-          if (result.hitMine) hitMine = true;
+          if (result.hitMine) {
+            hitMine = true;
+            minesHitCount++;
+          }
           revealedSomething = true;
         }
       }
     }
   }
 
-  return { board: newBoard, hitMine, revealedSomething };
+  return { board: newBoard, hitMine, revealedSomething, minesHitCount };
 };
 
 export const toggleFlag = (board, x, y) => {
@@ -169,7 +176,16 @@ export const revealAllMines = (board) => {
   let newBoard = structuredClone(board);
   for (let row of newBoard) {
     for (let cell of row) {
-      if (cell.isMine) cell.isRevealed = true;
+      if (cell.isFlagged) {
+        if (cell.isMine) {
+          cell.isCorrectFlag = true;
+        } else {
+          cell.isIncorrectFlag = true;
+        }
+      } else if (cell.isMine && !cell.isRevealed) {
+        cell.isRevealed = true;
+        cell.isGameOverReveal = true;
+      }
     }
   }
   return newBoard;

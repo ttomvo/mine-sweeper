@@ -1,11 +1,15 @@
 import React from 'react';
-import { Flag, Bomb } from 'lucide-react';
+import { Flag, Bomb, Heart } from 'lucide-react';
 
-const Cell = React.memo(({ x, y, cell, onClick, onContextMenu, theme }) => {
+const Cell = React.memo(({ x, y, cell, onClick, onContextMenu, theme, hasFloatingHeart }) => {
     const { isRevealed, isFlagged, isMine, neighborMines } = cell;
 
     const getCellContent = () => {
-        if (isFlagged) return <Flag size={16} className="text-red-500 fill-red-500" />;
+        if (isFlagged) {
+            if (cell.isCorrectFlag) return <Flag size={16} className="text-green-500 fill-green-500" />;
+            if (cell.isIncorrectFlag) return <Flag size={16} className="text-red-600 fill-red-600" />;
+            return <Flag size={16} className="text-red-500 fill-red-500" />;
+        }
         if (isRevealed && isMine) return <Bomb size={18} className="text-white fill-white" />;
         if (isRevealed && neighborMines > 0) return <span className={`font-bold text-lg ${getNumberColor(neighborMines)}`}>{neighborMines}</span>;
         return null;
@@ -35,13 +39,15 @@ const Cell = React.memo(({ x, y, cell, onClick, onContextMenu, theme }) => {
     };
 
     const baseClasses = `w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center border rounded-md select-none cursor-pointer transition-colors ${theme === 'dark'
-            ? 'border-gray-600'
-            : 'border-gray-300'
+        ? 'border-gray-600'
+        : 'border-gray-300'
         }`;
 
     const revealedClasses = isRevealed
         ? (isMine
-            ? "bg-red-500 border-red-500"
+            ? (cell.isGameOverReveal
+                ? (theme === 'dark' ? "bg-red-900/50 border-red-900/50" : "bg-red-200 border-red-200")
+                : "bg-gray-700 border-gray-700")
             : (theme === 'dark' ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"))
         : (theme === 'dark'
             ? "bg-gray-700 hover:bg-gray-600"
@@ -49,11 +55,16 @@ const Cell = React.memo(({ x, y, cell, onClick, onContextMenu, theme }) => {
 
     return (
         <div
-            className={`${baseClasses} ${revealedClasses}`}
+            className={`${baseClasses} ${revealedClasses} relative`}
             onClick={() => onClick(x, y)}
             onContextMenu={(e) => onContextMenu(e, x, y)}
         >
             {getCellContent()}
+            {hasFloatingHeart && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                    <Heart size={16} className="text-pink-500 fill-pink-500 animate-fly-fade" />
+                </div>
+            )}
         </div>
     );
 }, (prevProps, nextProps) => {
@@ -62,7 +73,10 @@ const Cell = React.memo(({ x, y, cell, onClick, onContextMenu, theme }) => {
         prevProps.cell.isFlagged === nextProps.cell.isFlagged &&
         prevProps.cell.isMine === nextProps.cell.isMine &&
         prevProps.cell.neighborMines === nextProps.cell.neighborMines &&
-        prevProps.theme === nextProps.theme
+        prevProps.cell.isCorrectFlag === nextProps.cell.isCorrectFlag &&
+        prevProps.cell.isIncorrectFlag === nextProps.cell.isIncorrectFlag &&
+        prevProps.theme === nextProps.theme &&
+        prevProps.hasFloatingHeart === nextProps.hasFloatingHeart
     );
 });
 

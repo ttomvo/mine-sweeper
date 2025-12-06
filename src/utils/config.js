@@ -1,7 +1,27 @@
 export const LEVELS = {
-    BEGINNER: { rows: 9, cols: 9, mines: 10 },
-    INTERMEDIATE: { rows: 15, cols: 20, mines: 40 },
-    EXPERT: { rows: 16, cols: 30, mines: 99 },
+    BEGINNER: {
+        rows: 9,
+        cols: 9,
+        mines: 10,
+        lives: 1,
+        threeStarTime: 60,
+        twoStarTime: 180
+    },
+    INTERMEDIATE: {
+        rows: 15,
+        cols: 20,
+        mines: 40,
+        lives: 2,
+        threeStarTime: 300,
+        twoStarTime: 600
+    },
+    EXPERT: {
+        rows: 16,
+        cols: 30, mines: 99,
+        lives: 3,
+        threeStarTime: 600,
+        twoStarTime: 1000
+    },
 };
 
 export const THEMES = {
