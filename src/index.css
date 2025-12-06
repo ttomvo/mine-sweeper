@@ -181,3 +181,51 @@ body {
 .animate-pop {
   animation: pop 0.3s ease-out;
 }
+
+@keyframes fly-right {
+  from {
+    transform: translateX(-10vw);
+  }
+
+  to {
+    transform: translateX(120vw);
+  }
+}
+
+@keyframes fly-left {
+  from {
+    transform: translateX(110vw);
+  }
+
+  to {
+    transform: translateX(-20vw);
+  }
+}
+
+.animate-fly-right {
+  animation-name: fly-right;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.animate-fly-left {
+  animation-name: fly-left;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fly-bob {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-fly-bob {
+  animation: fly-bob 3s ease-in-out infinite;
+}

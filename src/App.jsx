@@ -7,6 +7,7 @@ import { playClick, playFlag, playExplosion, playWin } from './utils/sound';
 import SettingsMenu from './components/SettingsMenu';
 import DebugMenu from './components/DebugMenu';
 import { LEVELS, STORAGE_KEYS, THEMES, DEFAULTS, WIN_MESSAGES } from './utils/config';
+import Airplane from './components/Airplane';
 import pkg from '../package.json';
 
 const WIN_ANIMATIONS = [
@@ -105,6 +106,7 @@ function App() {
   const [stars, setStars] = useState(0);
   const [showGameOverModal, setShowGameOverModal] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState([]);
+  const [flights, setFlights] = useState([]);
 
   const timerRef = useRef(null);
   const boardRef = useRef(board);
@@ -396,6 +398,50 @@ function App() {
     };
   }, []);
 
+  // Flight logic
+  useEffect(() => {
+    if (!isIdle) {
+      // Fade out logic: Clear state after transition (1s)
+      const timer = setTimeout(() => setFlights([]), 1000);
+      return () => clearTimeout(timer);
+    }
+
+    const spawnPlane = () => {
+      const id = Date.now() + Math.random();
+
+      // Depth factor: 0 (Far/Background) to 1 (Close/Foreground)
+      const depth = Math.random();
+
+      // Closer = Faster (shorter duration), Further = Slower (longer duration)
+      // Range: 10s (Fast/Close) to 35s (Slow/Far)
+      const duration = 35 - (depth * 25);
+
+      // Closer = Bigger, Further = Smaller
+      // Range: 12px (Far) to 32px (Close)
+      const size = 12 + (depth * 20);
+
+      // Randomize opacity slightly for depth effect (Far = less opaque)
+      const opacity = 0.3 + (depth * 0.7); // 0.3 to 1.0
+
+      const y = 5 + Math.random() * 80;
+      const direction = Math.random() > 0.5 ? 'right' : 'left';
+      const delay = Math.random() * 2;
+
+      setFlights(prev => [...prev, { id, y, duration, delay, direction, size, opacity }]);
+    };
+
+    // Initial spawn
+    spawnPlane();
+
+    const interval = setInterval(() => {
+      if (Math.random() > 0.4) {
+        spawnPlane();
+      }
+    }, 5000); // Check every 5s
+
+    return () => clearInterval(interval);
+  }, [isIdle]);
+
   return (
     <div
       className={`h-screen w-full flex flex-col overflow-hidden font-sans transition-colors duration-300 ${effectiveTheme === THEMES.DARK
@@ -506,8 +552,24 @@ function App() {
 
       {/* Game Board Container */}
       <div className="flex-1 relative overflow-hidden">
-        <div className="w-full h-full overflow-auto flex items-start justify-center p-4 pt-12">
-          <div className={`relative group ${isIdle ? 'idle-mode' : ''} ${(gameState === 'won' || gameState === 'lost') ? 'pointer-events-none' : ''}`}>
+        <div className="w-full h-full overflow-auto flex items-start justify-center p-4 pt-4">
+          {/* Airplanes Container with Fade */}
+          <div className={`absolute inset-0 pointer-events-none transition-opacity duration-1000 ${isIdle ? 'opacity-100' : 'opacity-0'}`}>
+            {flights.map(flight => (
+              <Airplane
+                key={flight.id}
+                y={flight.y}
+                duration={flight.duration}
+                delay={flight.delay}
+                direction={flight.direction}
+                size={flight.size}
+                opacity={flight.opacity}
+                onComplete={() => setFlights(prev => prev.filter(f => f.id !== flight.id))}
+              />
+            ))}
+          </div>
+
+          <div className={`relative group z-20 ${isIdle ? 'idle-mode' : ''} ${(gameState === 'won' || gameState === 'lost') ? 'pointer-events-none' : ''}`}>
             <Board
               board={board}
               onCellClick={handleCellClick}
