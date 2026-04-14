@@ -1,6 +1,7 @@
 # Mimesweeper
 
-A modern, themed Minesweeper clone built with React and Vite.
+A modern, themed Minesweeper clone built with React and Vite.  
+[live site with github pages](https://ttomvo.github.io/mine-sweeper/)
 
 ## Features
 
